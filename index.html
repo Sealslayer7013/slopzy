@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Pose Test</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; text-align: center; }
+    #liveView {
+      position: relative;
+      display: inline-block;
+      border: 1px solid #555;
+    }
+    .videoView { display: block; }
+    .layer { position: absolute; top: 0; left: 0; }
+  </style>
+</head>
+<body>
+  <h1>AI Ski Coach</h1>
+  <p>Upload your ski footage to get feedback!</p>
+  <input type="file" id="video_upload" accept="video/*">
+  <h2 id="feedback">Knee Angle: --</h2>
+  <div id="liveView">
+    <video id="video_player" class="videoView" controls></video>
+    <canvas id="output_canvas" class="layer"></canvas>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
