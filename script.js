@@ -78,7 +78,7 @@ const pose = new Pose({
 });
 
 pose.setOptions({
-  modelComplexity: 1,
+  modelComplexity: 2,
   smoothLandmarks: true,
   minDetectionConfidence: 0.5,
   minTrackingConfidence: 0.5
