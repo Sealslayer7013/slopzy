@@ -7,8 +7,8 @@ const feedbackElement = document.getElementById("feedback");
 
 // --- State Variables for Tracking ---
 let lockedOnPerson = null; // This will store the landmarks of the person we are tracking.
-const LOCK_ON_DISTANCE_THRESHOLD = 200; // Max distance in pixels from center to lock on.
-const TRACKING_CONTINUITY_THRESHOLD = 150; // Max distance in pixels a person can move between frames.
+const LOCK_ON_DISTANCE_THRESHOLD = 400; // Max distance in pixels from center to lock on.
+const TRACKING_CONTINUITY_THRESHOLD = 300; // Max distance in pixels a person can move between frames.
 let detectionsInFrame = []; // Stores all detections from a single frame.
 
 // --- Logic for loading the video file ---
