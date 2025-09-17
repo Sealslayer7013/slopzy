@@ -8,8 +8,14 @@
       position: relative;
       display: inline-block;
       border: 1px solid #555;
+      max-width: 800px; /* Set a max size for the video container */
+      width: 90%;       /* Make it responsive */
     }
-    .videoView { display: block; }
+    .videoView {
+      display: block;
+      width: 100%;      /* Make video fill the container's width */
+      height: auto;     /* Maintain aspect ratio */
+    }
     .layer { position: absolute; top: 0; left: 0; }
   </style>
 </head>
