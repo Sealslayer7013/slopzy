@@ -29,9 +29,9 @@ function calculateAngle(a, b, c) {
 
 // This main function runs every time the AI sees a person
 function onResults(results) {
-  // Make the drawing canvas the same size as the video
-  canvasElement.width = videoElement.videoWidth;
-  canvasElement.height = videoElement.videoHeight;
+  // Make the drawing canvas the same size as the video element on the screen
+  canvasElement.width = videoElement.clientWidth;
+  canvasElement.height = videoElement.clientHeight;
 
   // Clear the canvas and draw the video frame onto it
   canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
