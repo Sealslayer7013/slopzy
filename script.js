@@ -13,48 +13,51 @@ let detectionsInFrame = []; // Stores all detections from a single frame.
 
 // --- Logic for loading the video file ---
 videoUpload.addEventListener('change', (e) => {
+  // When a new file is uploaded, reset the tracking
+  lockedOnPerson = null;
   const file = e.target.files[0];
   if (file) {
     const url = URL.createObjectURL(file);
     videoElement.src = url;
     videoElement.load();
-    videoElement.play(); // Autoplay the video once loaded
+    videoElement.play();
   }
 });
 
-// This is our helper function to calculate an angle between three dots
+// --- Helper Functions ---
 function calculateAngle(a, b, c) {
   const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
   let angle = Math.abs(radians * 180.0 / Math.PI);
-
   if (angle > 180.0) {
     angle = 360 - angle;
   }
   return angle;
 }
 
-// This helper function calculates the distance between two points
 function getDistance(point1, point2) {
   const dx = point1.x - point2.x;
   const dy = point1.y - point2.y;
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-// This helper function gets the center of the hips
 function getCenter(landmarks) {
   const leftHip = landmarks[23];
   const rightHip = landmarks[24];
-  // We multiply by canvas dimensions to get pixel coordinates
   return {
     x: (leftHip.x + rightHip.x) / 2 * canvasElement.width,
     y: (leftHip.y + rightHip.y) / 2 * canvasElement.height,
   };
 }
 
-// This function is called every time the AI detects a person.
-// We just add their landmarks to our list for this frame.
+// --- MediaPipe and Processing Functions ---
+
+// This function is called every time the AI has results.
+// We just add any found landmarks to our list for this frame.
 function onResults(results) {
-  if (results.poseLandmarks) {
+  if (results.multiPoseLandmarks) {
+    detectionsInFrame.push(...results.multiPoseLandmarks);
+  } else if (results.poseLandmarks) {
+    // Fallback for single pose detection
     detectionsInFrame.push(results.poseLandmarks);
   }
 }
@@ -92,7 +95,6 @@ function processDetections() {
 
   // --- This section only runs if we have a locked-on person ---
   if (lockedOnPerson) {
-    // Draw the skeleton and run the coaching logic
     drawConnectors(canvasCtx, lockedOnPerson, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
     drawLandmarks(canvasCtx, lockedOnPerson, {color: '#FF0000', radius: 2});
 
@@ -114,54 +116,47 @@ function processDetections() {
   }
 }
 
-// --- Setup the AI Model ---
+// --- MediaPipe Setup ---
 const pose = new Pose({
-  locateFile: (file) => {
-    return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-  }
+  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
 });
 
 pose.setOptions({
   modelComplexity: 2,
   smoothLandmarks: true,
   minDetectionConfidence: 0.75,
-  minTrackingConfidence: 0.75
+  minTrackingConfidence: 0.75,
 });
 
-// Connect our main function (onResults) to the AI
 pose.onResults(onResults);
 
-
-// --- Logic for processing the video ---
+// --- Main Video Processing Loop ---
 async function processFrame() {
-  // If the video is not paused and has not ended, send the frame to MediaPipe
+  // Clear the detections from the last frame before we start a new one
+  detectionsInFrame = [];
+
+  // Send the current video frame to MediaPipe for analysis
+  await pose.send({image: videoElement});
+
+  // Now that pose.send is complete, onResults has been called and
+  // our detectionsInFrame array is populated. We can now process it.
+
+  // Set the canvas to the video's current size
+  canvasElement.width = videoElement.clientWidth;
+  canvasElement.height = videoElement.clientHeight;
+
+  // Draw the video frame onto the canvas
+  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  canvasCtx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+
+  // Process the batch of detections we received for this frame
+  processDetections();
+
+  // If the video is still playing, request the next frame
   if (!videoElement.paused && !videoElement.ended) {
-    // Clear the detections from the last frame
-    detectionsInFrame = [];
-
-    // Set the canvas to the video's current size
-    canvasElement.width = videoElement.clientWidth;
-    canvasElement.height = videoElement.clientHeight;
-
-    // Send the video frame to the AI
-    await pose.send({image: videoElement});
-
-    // Draw the video frame onto the canvas
-    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-    canvasCtx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-
-    // Process the detections we received
-    processDetections();
-
-    // Rerun the processFrame function on the next frame
     requestAnimationFrame(processFrame);
   }
 }
 
-// When the video starts playing, or resumes from a pause, begin processing frames.
-videoElement.addEventListener('play', () => {
-  requestAnimationFrame(processFrame);
-});
-videoElement.addEventListener('playing', () => {
-  requestAnimationFrame(processFrame);
-});
+videoElement.addEventListener('play', () => requestAnimationFrame(processFrame));
+videoElement.addEventListener('playing', () => requestAnimationFrame(processFrame));
