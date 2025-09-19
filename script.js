@@ -9,7 +9,6 @@ const feedbackElement = document.getElementById("feedback");
 let lockedOnPerson = null; // This will store the landmarks of the person we are tracking.
 const LOCK_ON_DISTANCE_THRESHOLD = 400; // Max distance in pixels from center to lock on.
 const TRACKING_CONTINUITY_THRESHOLD = 300; // Max distance in pixels a person can move between frames.
-let detectionsInFrame = []; // Stores all detections from a single frame.
 
 // --- Logic for loading the video file ---
 videoUpload.addEventListener('change', (e) => {
@@ -49,45 +48,46 @@ function getCenter(landmarks) {
   };
 }
 
-// --- MediaPipe and Processing Functions ---
-
-// This function is called every time the AI has results.
-// We just add any found landmarks to our list for this frame.
+// --- Main Analysis Function ---
 function onResults(results) {
-  if (results.multiPoseLandmarks) {
-    detectionsInFrame.push(...results.multiPoseLandmarks);
-  } else if (results.poseLandmarks) {
-    // Fallback for single pose detection
-    detectionsInFrame.push(results.poseLandmarks);
-  }
-}
+  // Set the canvas to the video's current size and clear it
+  canvasElement.width = videoElement.clientWidth;
+  canvasElement.height = videoElement.clientHeight;
+  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-// This function processes the batch of detections for a single frame
-function processDetections() {
-  // Find the best candidate from the detections in the frame
+  // Draw the video frame onto the canvas
+  canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+  // Get the list of all people detected, or an empty list if none.
+  // Note: The code review was correct, but MediaPipe Pose for JS seems to have a bug
+  // or undocumented feature where it returns `poseLandmarks` for the first person
+  // and not `multiPoseLandmarks`. We will handle both cases to be safe.
+  const allDetectedPeople = results.multiPoseLandmarks || (results.poseLandmarks ? [results.poseLandmarks] : []);
+
+  // Find the best person to track from the list.
   let bestCandidate = null;
   if (lockedOnPerson === null) {
-    // If we are not tracking anyone, find the person closest to the center
+    // If we are not tracking anyone, find the person closest to the center.
     let minDistance = LOCK_ON_DISTANCE_THRESHOLD;
     const screenCenter = { x: canvasElement.width / 2, y: canvasElement.height / 2 };
-    for (const landmarks of detectionsInFrame) {
-      const personCenter = getCenter(landmarks);
+    for (const personLandmarks of allDetectedPeople) {
+      const personCenter = getCenter(personLandmarks);
       const distance = getDistance(personCenter, screenCenter);
       if (distance < minDistance) {
         minDistance = distance;
-        bestCandidate = landmarks;
+        bestCandidate = personLandmarks;
       }
     }
   } else {
-    // If we are already tracking someone, find the person closest to the last known position
+    // If we are already tracking someone, find the person closest to their last known position.
     let minDistance = TRACKING_CONTINUITY_THRESHOLD;
     const lockedOnCenter = getCenter(lockedOnPerson);
-    for (const landmarks of detectionsInFrame) {
-      const personCenter = getCenter(landmarks);
+    for (const personLandmarks of allDetectedPeople) {
+      const personCenter = getCenter(personLandmarks);
       const distance = getDistance(personCenter, lockedOnCenter);
       if (distance < minDistance) {
         minDistance = distance;
-        bestCandidate = landmarks;
+        bestCandidate = personLandmarks;
       }
     }
   }
@@ -130,30 +130,10 @@ pose.setOptions({
 
 pose.onResults(onResults);
 
-// --- Main Video Processing Loop ---
+// --- Video Processing Loop ---
 async function processFrame() {
-  // Clear the detections from the last frame before we start a new one
-  detectionsInFrame = [];
-
-  // Send the current video frame to MediaPipe for analysis
-  await pose.send({image: videoElement});
-
-  // Now that pose.send is complete, onResults has been called and
-  // our detectionsInFrame array is populated. We can now process it.
-
-  // Set the canvas to the video's current size
-  canvasElement.width = videoElement.clientWidth;
-  canvasElement.height = videoElement.clientHeight;
-
-  // Draw the video frame onto the canvas
-  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-  canvasCtx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-
-  // Process the batch of detections we received for this frame
-  processDetections();
-
-  // If the video is still playing, request the next frame
   if (!videoElement.paused && !videoElement.ended) {
+    await pose.send({image: videoElement});
     requestAnimationFrame(processFrame);
   }
 }
