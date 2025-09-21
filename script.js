@@ -5,18 +5,15 @@ const canvasElement = document.getElementById('output_canvas');
 const canvasCtx = canvasElement.getContext('2d');
 const feedbackElement = document.getElementById("feedback");
 
-// --- State Variables for Tracking ---
-let lockedOnPerson = null; // This will store the landmarks of the person we are tracking.
-const LOCK_ON_DISTANCE_THRESHOLD = 400; // Max distance in pixels from center to lock on.
-const TRACKING_CONTINUITY_THRESHOLD = 300; // Max distance in pixels a person can move between frames.
-
-// --- State Variables for Rep Counting ---
+// --- State Variables for Tracking and Rep Counting ---
+let lockedOnPerson = null;
+const LOCK_ON_DISTANCE_THRESHOLD = 400;
+const TRACKING_CONTINUITY_THRESHOLD = 300;
 let repCounter = 0;
-let repState = 'down'; // Can be 'down' or 'up'
+let repState = 'down';
 
 // --- Logic for loading the video file ---
 videoUpload.addEventListener('change', (e) => {
-  // When a new file is uploaded, reset the tracking and rep counter
   lockedOnPerson = null;
   repCounter = 0;
   repState = 'down';
@@ -49,33 +46,24 @@ function getCenter(landmarks) {
   const leftHip = landmarks[23];
   const rightHip = landmarks[24];
   return {
-    x: (leftHip.x + rightHip.x) / 2 * canvasElement.width,
-    y: (leftHip.y + rightHip.y) / 2 * canvasElement.height,
+    x: (leftHip.x + rightHip.x) / 2,
+    y: (leftHip.y + rightHip.y) / 2,
   };
 }
 
 // --- Main Analysis Function ---
 function onResults(results) {
-  // Set the canvas to the video's current size and clear it
   canvasElement.width = videoElement.clientWidth;
   canvasElement.height = videoElement.clientHeight;
   canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-  // Draw the video frame onto the canvas
   canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
-  // Get the list of all people detected, or an empty list if none.
-  // Note: The code review was correct, but MediaPipe Pose for JS seems to have a bug
-  // or undocumented feature where it returns `poseLandmarks` for the first person
-  // and not `multiPoseLandmarks`. We will handle both cases to be safe.
-  const allDetectedPeople = results.multiPoseLandmarks || (results.poseLandmarks ? [results.poseLandmarks] : []);
+  const allDetectedPeople = results.poseLandmarks ? [results.poseLandmarks] : [];
 
-  // Find the best person to track from the list.
   let bestCandidate = null;
   if (lockedOnPerson === null) {
-    // If we are not tracking anyone, find the person closest to the center.
     let minDistance = LOCK_ON_DISTANCE_THRESHOLD;
-    const screenCenter = { x: canvasElement.width / 2, y: canvasElement.height / 2 };
+    const screenCenter = { x: 0.5, y: 0.5 }; // Normalized coordinates
     for (const personLandmarks of allDetectedPeople) {
       const personCenter = getCenter(personLandmarks);
       const distance = getDistance(personCenter, screenCenter);
@@ -85,7 +73,6 @@ function onResults(results) {
       }
     }
   } else {
-    // If we are already tracking someone, find the person closest to their last known position.
     let minDistance = TRACKING_CONTINUITY_THRESHOLD;
     const lockedOnCenter = getCenter(lockedOnPerson);
     for (const personLandmarks of allDetectedPeople) {
@@ -99,19 +86,15 @@ function onResults(results) {
   }
   lockedOnPerson = bestCandidate;
 
-  // --- This section only runs if we have a locked-on person ---
   if (lockedOnPerson) {
     drawConnectors(canvasCtx, lockedOnPerson, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
     drawLandmarks(canvasCtx, lockedOnPerson, {color: '#FF0000', radius: 2});
 
-    // --- Bicep Curl Analysis ---
     const leftShoulder = lockedOnPerson[11];
     const leftElbow = lockedOnPerson[13];
     const leftWrist = lockedOnPerson[15];
-
     const elbowAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
 
-    // Rep counting and feedback logic
     let feedbackText = "";
     if (elbowAngle > 160) {
       repState = 'down';
@@ -126,10 +109,9 @@ function onResults(results) {
       feedbackText = "Good rep!";
     }
 
-    // Update the feedback element
     feedbackElement.innerHTML = `Reps: ${repCounter} | Angle: ${Math.round(elbowAngle)}<br>${feedbackText}`;
   } else {
-    feedbackElement.innerHTML = "Looking for skier...";
+    feedbackElement.innerHTML = "Looking for person...";
   }
 }
 
@@ -139,21 +121,21 @@ const pose = new Pose({
 });
 
 pose.setOptions({
-  modelComplexity: 2,
+  modelComplexity: 1,
   smoothLandmarks: true,
-  minDetectionConfidence: 0.75,
-  minTrackingConfidence: 0.75,
+  minDetectionConfidence: 0.5,
+  minTrackingConfidence: 0.5,
 });
 
 pose.onResults(onResults);
 
 // --- Video Processing Loop ---
-async function processFrame() {
+async function videoLoop() {
   if (!videoElement.paused && !videoElement.ended) {
     await pose.send({image: videoElement});
-    requestAnimationFrame(processFrame);
   }
+  requestAnimationFrame(videoLoop);
 }
 
-videoElement.addEventListener('play', () => requestAnimationFrame(processFrame));
-videoElement.addEventListener('playing', () => requestAnimationFrame(processFrame));
+videoElement.addEventListener('play', videoLoop);
+videoElement.addEventListener('playing', videoLoop);
