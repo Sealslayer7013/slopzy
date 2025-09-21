@@ -1,37 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AI Gym Coach</title>
+  <meta charset="utf-8">
+  <title>MediaPipe Pose - Basic Demo</title>
   <style>
-    body { font-family: sans-serif; margin: 2em; text-align: center; }
-    #liveView {
+    .container {
       position: relative;
-      display: inline-block;
-      border: 1px solid #555;
-      max-width: 800px; /* Set a max size for the video container */
-      width: 90%;       /* Make it responsive */
     }
-    .videoView {
-      display: block;
-      width: 100%;      /* Make video fill the container's width */
-      height: auto;     /* Maintain aspect ratio */
+    .input_video {
+      display: none;
     }
-    .layer { position: absolute; top: 0; left: 0; }
+    .output_canvas {
+      width: 1280px;
+      height: 720px;
+    }
   </style>
 </head>
 <body>
-  <h1>AI Gym Coach</h1>
-  <p>Upload your workout footage to analyze your form.</p>
-  <input type="file" id="video_upload" accept="video/*">
-  <h2 id="feedback">Feedback</h2>
-  <div id="liveView">
-    <video id="video_player" class="videoView" controls></video>
-    <canvas id="output_canvas" class="layer"></canvas>
+  <div class="container">
+    <video class="input_video"></video>
+    <canvas class="output_canvas"></canvas>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
-
   <script type="module" src="script.js"></script>
 </body>
 </html>
