@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AI Pose Test</title>
+  <title>AI Gym Coach</title>
   <style>
     body { font-family: sans-serif; margin: 2em; text-align: center; }
     #liveView {
@@ -20,10 +20,10 @@
   </style>
 </head>
 <body>
-  <h1>AI Ski Coach</h1>
-  <p>Upload your ski footage to get feedback!</p>
+  <h1>AI Gym Coach</h1>
+  <p>Upload your workout footage to analyze your form.</p>
   <input type="file" id="video_upload" accept="video/*">
-  <h2 id="feedback">Knee Angle: --</h2>
+  <h2 id="feedback">Feedback</h2>
   <div id="liveView">
     <video id="video_player" class="videoView" controls></video>
     <canvas id="output_canvas" class="layer"></canvas>

@@ -10,10 +10,16 @@ let lockedOnPerson = null; // This will store the landmarks of the person we are
 const LOCK_ON_DISTANCE_THRESHOLD = 400; // Max distance in pixels from center to lock on.
 const TRACKING_CONTINUITY_THRESHOLD = 300; // Max distance in pixels a person can move between frames.
 
+// --- State Variables for Rep Counting ---
+let repCounter = 0;
+let repState = 'down'; // Can be 'down' or 'up'
+
 // --- Logic for loading the video file ---
 videoUpload.addEventListener('change', (e) => {
-  // When a new file is uploaded, reset the tracking
+  // When a new file is uploaded, reset the tracking and rep counter
   lockedOnPerson = null;
+  repCounter = 0;
+  repState = 'down';
   const file = e.target.files[0];
   if (file) {
     const url = URL.createObjectURL(file);
@@ -98,19 +104,30 @@ function onResults(results) {
     drawConnectors(canvasCtx, lockedOnPerson, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
     drawLandmarks(canvasCtx, lockedOnPerson, {color: '#FF0000', radius: 2});
 
-    const leftHip = lockedOnPerson[23];
-    const leftKnee = lockedOnPerson[25];
-    const leftAnkle = lockedOnPerson[27];
-    const kneeAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
+    // --- Bicep Curl Analysis ---
+    const leftShoulder = lockedOnPerson[11];
+    const leftElbow = lockedOnPerson[13];
+    const leftWrist = lockedOnPerson[15];
 
+    const elbowAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
+
+    // Rep counting and feedback logic
     let feedbackText = "";
-    if (kneeAngle > 160) {
-      feedbackText = "Bend your knees!";
-    } else {
-      feedbackText = "Good stance!";
+    if (elbowAngle > 160) {
+      repState = 'down';
+      feedbackText = "Good form!";
+    }
+    if (repState === 'up' && elbowAngle > 40) {
+        feedbackText = "Bring it all the way up!";
+    }
+    if (elbowAngle < 40 && repState === 'down') {
+      repState = 'up';
+      repCounter++;
+      feedbackText = "Good rep!";
     }
 
-    feedbackElement.innerHTML = feedbackText + "<br>Knee Angle: " + Math.round(kneeAngle);
+    // Update the feedback element
+    feedbackElement.innerHTML = `Reps: ${repCounter} | Angle: ${Math.round(elbowAngle)}<br>${feedbackText}`;
   } else {
     feedbackElement.innerHTML = "Looking for skier...";
   }
