@@ -26,7 +26,16 @@ function onResults(results) {
 
   if (results.poseLandmarks) {
     drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
-    drawLandmarks(canvasCtx, results.poseLandmarks, {color: '#FF0000', lineWidth: 2});
+
+    // Custom landmark drawing loop to skip face landmarks
+    const landmarks = results.poseLandmarks;
+    for (let i = 11; i < landmarks.length; i++) {
+      const landmark = landmarks[i];
+      canvasCtx.beginPath();
+      canvasCtx.arc(landmark.x * canvasElement.width, landmark.y * canvasElement.height, 5, 0, 2 * Math.PI);
+      canvasCtx.fillStyle = '#FF0000';
+      canvasCtx.fill();
+    }
   }
 }
 
@@ -38,7 +47,7 @@ const pose = new Pose({
 });
 
 pose.setOptions({
-  modelComplexity: 1,
+  modelComplexity: 2,
   smoothLandmarks: true,
   minDetectionConfidence: 0.5,
   minTrackingConfidence: 0.5
