@@ -1,3 +1,15 @@
+// --- Custom Body Connections ---
+// This array defines the connections for a basic "stick figure" body,
+// omitting the face, hands, and feet for a cleaner look.
+const BODY_CONNECTIONS = [
+  // Torso
+  [11, 12], [11, 23], [12, 24], [23, 24],
+  // Arms
+  [11, 13], [13, 15], [12, 14], [14, 16],
+  // Legs
+  [23, 25], [25, 27], [24, 26], [26, 28]
+];
+
 // --- Get HTML elements ---
 const videoElement = document.getElementById('videoElement');
 const canvasElement = document.getElementById('canvasElement');
@@ -25,15 +37,24 @@ function onResults(results) {
   canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
   if (results.poseLandmarks) {
-    drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
+    // Use our custom list of connections to draw only the body
+    drawConnectors(canvasCtx, results.poseLandmarks, BODY_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
 
-    // Custom landmark drawing loop to skip face landmarks
     const landmarks = results.poseLandmarks;
+
+    // Draw a single dot for the head (using the nose)
+    const nose = landmarks[0];
+    canvasCtx.beginPath();
+    canvasCtx.arc(nose.x * canvasElement.width, nose.y * canvasElement.height, 7, 0, 2 * Math.PI);
+    canvasCtx.fillStyle = '#00FFFF'; // Cyan for the head
+    canvasCtx.fill();
+
+    // Draw the body landmarks (including shoulders)
     for (let i = 11; i < landmarks.length; i++) {
       const landmark = landmarks[i];
       canvasCtx.beginPath();
       canvasCtx.arc(landmark.x * canvasElement.width, landmark.y * canvasElement.height, 5, 0, 2 * Math.PI);
-      canvasCtx.fillStyle = '#FF0000';
+      canvasCtx.fillStyle = '#FF0000'; // Red for the body
       canvasCtx.fill();
     }
   }
