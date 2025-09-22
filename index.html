@@ -2,27 +2,45 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>MediaPipe Pose - Basic Demo</title>
+  <title>AI Pose Analyzer</title>
   <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin: 2em;
+    }
     .container {
       position: relative;
+      display: inline-block;
+      border: 1px solid #555;
+      max-width: 90%;
+      max-height: 80vh;
     }
-    .input_video {
-      display: none;
+    .video_player, .output_canvas {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .video_player {
+      position: relative; /* Keep it in the layout flow */
+      z-index: 10;
     }
     .output_canvas {
-      width: 1280px;
-      height: 720px;
+      z-index: 20;
     }
   </style>
 </head>
 <body>
+  <h1>AI Pose Analyzer</h1>
+  <p>Upload a video to track the person in it.</p>
+  <input type="file" id="video_upload" accept="video/*">
   <div class="container">
-    <video class="input_video"></video>
-    <canvas class="output_canvas"></canvas>
+    <video class="video_player" id="videoElement" controls></video>
+    <canvas class="output_canvas" id="canvasElement"></canvas>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
   <script type="module" src="script.js"></script>

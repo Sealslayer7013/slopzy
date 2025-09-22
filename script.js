@@ -1,15 +1,26 @@
 // --- Get HTML elements ---
-const videoElement = document.querySelector('.input_video');
-const canvasElement = document.querySelector('.output_canvas');
+const videoElement = document.getElementById('videoElement');
+const canvasElement = document.getElementById('canvasElement');
 const canvasCtx = canvasElement.getContext('2d');
+const videoUpload = document.getElementById('video_upload');
+
+// --- Logic for loading the video file ---
+videoUpload.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const url = URL.createObjectURL(file);
+    videoElement.src = url;
+    videoElement.play();
+  }
+});
 
 // --- Main callback function ---
 function onResults(results) {
-  // Set canvas size
-  canvasElement.width = results.image.width;
-  canvasElement.height = results.image.height;
+  // Set canvas size to match the video dimensions
+  canvasElement.width = videoElement.videoWidth;
+  canvasElement.height = videoElement.videoHeight;
 
-  // Draw the results
+  // Draw the video frame and the pose results
   canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
   canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
@@ -35,13 +46,15 @@ pose.setOptions({
 
 pose.onResults(onResults);
 
-// --- Camera setup ---
-const camera = new Camera(videoElement, {
-  onFrame: async () => {
+// --- Video Processing Loop ---
+async function videoLoop() {
+  // If the video is playing, send the current frame to MediaPipe
+  if (!videoElement.paused && !videoElement.ended) {
     await pose.send({image: videoElement});
-  },
-  width: 1280,
-  height: 720
-});
+  }
+  // Request the next frame to create a continuous loop
+  requestAnimationFrame(videoLoop);
+}
 
-camera.start();
+// Start the loop when the video starts playing
+videoElement.addEventListener('play', videoLoop);
